@@ -1,7 +1,9 @@
 (ns status-im.ui.screens.wallet.events
   (:require [re-frame.core :as re-frame :refer [dispatch reg-fx]]
             [status-im.utils.handlers :as handlers]
-            [status-im.utils.prices :as prices]))
+            [status-im.utils.prices :as prices]
+            [status-im.ui.screens.wallet.db :as wallet.db]
+            [status-im.components.status :as status]))
 
 (defn get-balance [{:keys [web3 account-id on-success on-error]}]
   (if (and web3 account-id)
@@ -46,18 +48,19 @@
                   :error-event   :update-prices-fail}}))
 
 (handlers/register-handler-fx
- :init-wallet
- (fn [{{:keys [web3 accounts/current-account-id] :as db} :db} [_ a]]
-   {:get-balance {:web3          web3
-                  :account-id    current-account-id
-                  :success-event :update-balance
-                  :error-event   :update-balance-fail}
-    :dispatch    [:load-prices]}))
+  :init-wallet
+  (fn [{{:keys [web3 accounts/current-account-id] :as db} :db} [_ a]]
+    {:get-balance {:web3          web3
+                   :account-id    current-account-id
+                   :success-event :update-balance
+                   :error-event   :update-balance-fail}
+     :dispatch    [:load-prices]
+     :db (assoc-in db [:wallet :transactions] wallet.db/dummy-transaction-data)}))
 
 (handlers/register-handler-db
- :update-balance
- (fn [db [_ balance]]
-   (assoc db :wallet {:balance balance})))
+  :update-balance
+  (fn [db [_ balance]]
+    (assoc-in db [:wallet :balance] balance)))
 
 (handlers/register-handler-db
  :update-prices
@@ -70,6 +73,6 @@
    (.log js/console "Unable to get balance: " err)))
 
 (handlers/register-handler-fx
- :update-prices-fail
- (fn [_ [_ err]]
-   (.log js/console "Unable to get prices: " err)))
+  :update-prices-fail
+  (fn [_ [_ err]]
+    (.log js/console "Unable to get prices: " err)))
