@@ -5,7 +5,7 @@
             [status-im.ui.screens.accounts.views :refer [account-badge]]
             [status-im.components.text-input-with-label.view :refer [text-input-with-label]]
             [status-im.components.status-bar :refer [status-bar]]
-            [status-im.components.toolbar-new.view :refer [toolbar]]
+            [status-im.components.toolbar-new.view :as toolbar]
             [status-im.components.toolbar-new.actions :as act]
             [status-im.ui.screens.accounts.login.styles :as st]
             [status-im.components.react :refer [view
@@ -15,12 +15,12 @@
             [status-im.components.react :as components]))
 
 (defn login-toolbar []
-  [toolbar {:background-color :transparent
-            :hide-border?     true
-            :title-style      {:color :white}
-            :nav-action       (act/back-white #(dispatch [:navigate-back]))
-            :actions          [{:image :blank}]
-            :title            (i18n/label :t/sign-in-to-status)}])
+  [toolbar/toolbar2
+   {:background-color :transparent
+    :hide-border?     true}
+   [toolbar/nav-button (act/back-white #(dispatch [:navigate-back]))]
+   [toolbar/content-title {:color :white} (i18n/label :t/sign-in-to-status)]
+   [toolbar/actions [{:image :blank}]]])
 
 (def password-text-input (atom nil))
 

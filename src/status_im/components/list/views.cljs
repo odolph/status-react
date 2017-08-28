@@ -88,15 +88,19 @@
 (defn- default-render-section-header [m]
   [rn/text {:style lst/section-header} (:title m)])
 
+(defn- wrap-per-section-render-fn [v]
+  (map #(if-let [f (:render-fn %)] (assoc (dissoc % :render-fn) :renderItem f) %) v))
+
 (defn section-list
   "A wrapper for SectionList.
    See https://facebook.github.io/react-native/docs/sectionlist.html"
   [{:keys [sections render-fn empty-component render-section-header-fn] :or {render-section-header-fn default-render-section-header} :as props}]
-  (if (and (empty? sections) empty-component)
-    empty-component
-    [section-list-class
-     (merge (base-list-props render-fn empty-component)
-            {:sections            (clj->js (map #(if-let [f (:render-fn %)] (assoc % :renderItem (wrap-render-fn f)) %) sections))
-             :renderSectionHeader (wrap-render-section-header-fn render-section-header-fn)}
-            (when p/ios? {:SectionSeparatorComponent (fn [] (r/as-element [section-separator]))})
-            props)]))
+ (let [sections' (clj->js (wrap-per-section-render-fn sections))]
+   (if (and (empty? sections) empty-component)
+      empty-component
+      [section-list-class
+       (merge (base-list-props render-fn empty-component)
+              {:sections            sections'
+               :renderSectionHeader (wrap-render-section-header-fn render-section-header-fn)}
+              (when p/ios? {:SectionSeparatorComponent (fn [] (r/as-element [section-separator]))})
+              props)])))

@@ -3,6 +3,7 @@
   (:require [reagent.core :as r]
             [re-frame.core :as rf]
             [status-im.components.button.view :as btn]
+            [status-im.components.checkbox.view :as chk]
             [status-im.components.react :as rn]
             [status-im.components.list.views :as list]
             [status-im.components.tabs.styles :as tst]
@@ -33,10 +34,10 @@
    "History"])
 
 (defn toolbar-view [view-id]
-  [toolbar/toolbar
-   {:title         (i18n/label :t/transactions)
-    :custom-action
-    [(if (= @view-id :wallet-transactions-unsigned) unsigned-action history-action)]}])
+  [toolbar/toolbar2 {}
+   toolbar/default-nav-back
+   [toolbar/content-title (i18n/label :t/transactions)]
+   [(if (= @view-id :wallet-transactions-unsigned) unsigned-action history-action)]])
 
 (defn- icon-status [k]
   (case k
@@ -46,7 +47,7 @@
 (defn action-buttons [m ]
   [rn/view {:style st/action-buttons}
    [btn/primary-button {:text (i18n/label :t/transactions-sign) :on-press #(on-sign-transaction m)}]
-   [btn/secondary-button {:text (i18n/label :t/transactions-delete) :on-press #(on-delete-transaction m)}]])
+   [btn/secondary-button {:text (i18n/label :t/delete) :on-press #(on-delete-transaction m)}]])
 
 (defn- unsigned? [state] (= "unsigned" state))
 
@@ -54,7 +55,7 @@
   [list/item
    [list/item-icon :ok_blue]
    [list/item-content
-    (str value " " symbol) (str (i18n/label :t/transactions-to) " " to)
+    (str value " " symbol) (str (i18n/label :t/to) " " to)
     (if (unsigned? state)
       [action-buttons m])]
    [list/item-icon :forward_gray]])
@@ -111,7 +112,7 @@
   [rn/keyboard-avoiding-view {:style st/sign-all-view}
    [rn/view {:style st/sign-all-done}
     [btn/primary-button {:style    st/sign-all-done-button
-                         :text     (i18n/label :t/transactions-sign-all-done)
+                         :text     (i18n/label :t/done)
                          :on-press #(rf/dispatch [:navigate-back])}]]
    [rn/view {:style st/sign-all-popup}
     [rn/text {:style st/sign-all-popup-sign-phrase} "one two three"] ;; TODO hook
@@ -129,12 +130,11 @@
     "GNO" :dollar_green
     :ok_blue))
 
-(defn item-tokens [{:keys [symbol label]}]
+(defn item-tokens [{:keys [symbol label checked?]}]
   [list/item
    [list/item-icon (token->icon symbol)]
    [list/item-content label symbol]
-   ;; TODO checkbox
-   ])
+   [chk/checkbox  {:checked? true #_checked?}]])
 
 (defn- type->icon [k]
   (case k
@@ -144,39 +144,40 @@
     "postponed" :ok_blue
     :ok_blue))
 
-(defn item-type [{:keys [id label]}]
+(defn item-type [{:keys [id label checked?]}]
   [list/item
    [list/item-icon (type->icon id)]
    [list/item-content label]
-   ;; TODO checkbox
-   ])
+   [chk/checkbox checked?]])
 
 (def filter-data
   [{:title (i18n/label :t/transactions-filter-tokens)
     :key :tokens
-    :render-fn item-tokens
+    :renderItem (list/wrap-render-fn item-tokens)
+    ;:render-fn item-tokens ;; TODO ??
     :data [{:symbol "GNO" :label "Gnosis"}
            {:symbol "SNT" :label "Status Network Token"}
            {:symbol "SGT" :label "Status Genesis Token"}
            {:symbol "GOL" :label "Golem"}]}
    {:title (i18n/label :t/transactions-filter-type)
     :key :type
-    :render-fn item-type
+    :renderItem (list/wrap-render-fn item-type)
+    ;:render-fn item-type ;; TODO ??
     :data [{:id :incoming :label "Incoming"}
            {:id :outgoing :label "Outgoing"}
            {:id :pending :label "Pending"}
+           {:id :postponed :label "Postponed"}
+           {:id :postponed :label "Postponed"}
            {:id :postponed :label "Postponed"}]}])
 
 (defview filter-history []
   []
   [rn/view
-   [toolbar/toolbar
-    ;; TODO(jeluard) replace with icon when available and toolbar has been refactored
-    {:title      (i18n/label :t/transactions-filter-title)
-     :nav-action (act/back #(rf/dispatch [:navigate-back]));; TODO close modal
-     :custom-action
-                 [toolbar/text-action #(rf/dispatch [:navigate-to-modal :wallet-transactions-filter])
-                  (i18n/label :t/transactions-filter-select-all)]}]
+   [toolbar/toolbar2 {}
+    [toolbar/nav-clear-text (i18n/label :t/done)]
+    [toolbar/content-title (i18n/label :t/transactions-filter-title)]
+    [toolbar/text-action #(utils/show-popup "TODO" "Select All")
+     (i18n/label :t/transactions-filter-select-all)]]
    [rn/scroll-view
     [list/section-list {:sections filter-data}]]])
 
@@ -199,7 +200,7 @@
 
 ;; TODO(yenda) must reflect selected wallet
 
-(def initial-tab (-> tab-list first :view-id))
+(def initial-tab (-> tab-list second :view-id))
 
 (defview transactions []
   []

@@ -15,7 +15,7 @@
             [status-im.components.status-bar :refer [status-bar]]
             [status-im.components.styles :refer [color-blue]]
             [status-im.components.toolbar-new.actions :as actions]
-            [status-im.components.toolbar-new.view :refer [toolbar]]
+            [status-im.components.toolbar-new.view :as toolbar]
             [status-im.i18n :refer [label]]
             [status-im.ui.screens.profile.styles :as styles]
             [status-im.utils.datetime :as time]
@@ -23,11 +23,11 @@
   (:require-macros [status-im.utils.views :refer [defview]]))
 
 (defn my-profile-toolbar []
-  [toolbar {:actions [(actions/opts [{:value #(dispatch [:my-profile/edit])
+  [toolbar/toolbar {:actions [(actions/opts [{:value #(dispatch [:my-profile/edit])
                                       :text (label :t/edit)}])]}])
 
 (defn profile-toolbar [contact]
-  [toolbar
+  [toolbar/toolbar
    (when (and (not (:pending? contact))
               (not (:unremovable? contact)))
      {:actions [(actions/opts [{:value #(dispatch [:hide-contact contact])

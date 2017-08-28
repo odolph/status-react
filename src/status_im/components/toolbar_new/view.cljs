@@ -1,26 +1,111 @@
 (ns status-im.components.toolbar-new.view
-  (:require [re-frame.core :refer [subscribe dispatch]]
+  (:require [reagent.core :as r]
+            [re-frame.core :as rf]
             [status-im.components.react :as rn]
-            [status-im.components.sync-state.gradient :refer [sync-state-gradient-view]]
+            [status-im.components.sync-state.gradient :as sync-state-gradient-view]
             [status-im.components.styles :as st]
-            [status-im.components.context-menu :refer [context-menu]]
+            [status-im.components.context-menu :as context-menu]
             [status-im.components.toolbar-new.actions :as act]
-            [status-im.components.toolbar-new.styles :as tst]
-            [reagent.core :as r]))
+            [status-im.components.toolbar-new.styles :as tst]))
 
-(defn nav-button
-  [{:keys [handler accessibility-label image]}]
+;; Navigation item
+
+(defn nav-item
+  [{:keys [handler accessibility-label style] :or {handler #(rf/dispatch [:navigate-back])}} item]
   [rn/touchable-highlight
-   (merge {:style    tst/toolbar-button
-           :on-press handler}
+   (merge {:on-press handler}
           (when accessibility-label
             {:accessibility-label accessibility-label}))
-   [rn/view
-    [rn/image image]]])
+   [rn/view {:style style}
+    item]])
+
+(defn nav-button
+  [{:keys [image] :as props}]
+  [nav-item (merge {:style tst/nav-item-button} props)
+   [rn/image image]])
+
+(defn nav-text
+  ([text] (nav-text text nil))
+  ([text handler] (nav-text nil text handler))
+  ([props text handler]
+   [rn/text (merge {:style tst/item-text :on-press (or handler #(rf/dispatch [:navigate-back]))})
+    text]))
+
+(defn nav-clear-text
+  ([text] (nav-clear-text text nil))
+  ([text handler]
+   (nav-text tst/item-text-white-background text handler)))
+
+(def default-nav-back [nav-button act/default-back])
+
+;; Content
+
+(defn content-title
+  ([title] (content-title nil title))
+  ([title-style title]
+   [rn/view {:style tst/toolbar-title-container}
+    [rn/text {:style (merge tst/toolbar-title-text title-style)
+              :font  :toolbar-title}
+     title]]))
+
+;; Actions
 
 (defn text-action [handler title]
-  [rn/text {:style tst/toolbar-right-action :onPress handler}
+  [rn/text {:style tst/toolbar-right-text-action :on-press handler}
    title])
+
+(def blank-action [rn/view tst/toolbar-action])
+
+(defn- option-actions [image options]
+  [context-menu/context-menu
+   [rn/view tst/toolbar-action [rn/image image]]
+   options
+   nil
+   tst/toolbar-button])
+
+(defn- image-action [image handler]
+  [rn/touchable-highlight {:style    tst/toolbar-button
+                           :on-press handler}
+   [rn/view {:style tst/toolbar-action}
+    [rn/image image]]])
+
+(defn actions [v]
+  [rn/view {:style tst/toolbar-actions}
+   (for [{:keys [image options handler]} v]
+     (with-meta
+       (cond (= image :blank)
+             blank-action
+
+             options
+             [option-actions image options]
+
+             :else
+             [image-action image handler])
+       {:key (str "action-" image)}))])
+
+(defn toolbar2
+  ([title] (toolbar2 nil title))
+  ([props title] (toolbar2 props default-nav-back [content-title title]))
+  ([props nav-item content-item] (toolbar2 props nav-item content-item nil))
+  ([{:keys [background-color
+            hide-border?
+            style
+            border-style]}
+    nav-item
+    content-item
+    action-items]
+  (let [style (merge (tst/toolbar-wrapper background-color) style)]
+    [rn/view {:style style}
+     [rn/view {:style tst/toolbar}
+      (when nav-item
+        [rn/view {:style (tst/toolbar-nav-actions-container actions)}
+         nav-item])
+      content-item
+      action-items]
+     [sync-state-gradient-view/sync-state-gradient-view]
+     (when-not hide-border?
+       [rn/view {:style (merge tst/toolbar-border-container border-style)}
+        [rn/view {:style tst/toolbar-border}]])])))
 
 (defn toolbar [{:keys [title
                        nav-action
@@ -44,6 +129,7 @@
            [rn/text {:style (merge tst/toolbar-title-text title-style)
                      :font  :toolbar-title}
             title]])
+
       [rn/view (tst/toolbar-actions-container (count actions) custom-action)
        (if actions
          (for [{:keys [image options handler]} actions]
@@ -52,7 +138,7 @@
                    [rn/view tst/toolbar-action]
 
                    options
-                   [context-menu
+                   [context-menu/context-menu
                     [rn/view tst/toolbar-action [rn/image image]]
                     options
                     nil
@@ -65,7 +151,7 @@
                      [rn/image image]]])
              {:key (str "action-" image)}))
          custom-action)]]
-     [sync-state-gradient-view]
+     [sync-state-gradient-view/sync-state-gradient-view]
      (when-not hide-border?
        [rn/view (merge tst/toolbar-border-container border-style)
         [rn/view tst/toolbar-border]])]))
@@ -73,9 +159,9 @@
 (def search-text-input (r/atom nil))
 
 (defn- toolbar-search-submit [on-search-submit]
-  (let [text @(subscribe [:get-in [:toolbar-search :text]])]
+  (let [text @(rf/subscribe [:get-in [:toolbar-search :text]])]
     (on-search-submit text)
-    (dispatch [:set-in [:toolbar-search :text] nil])))
+    (rf/dispatch [:set-in [:toolbar-search :text] nil])))
 
 (defn- toolbar-with-search-content [{:keys [show-search?
                                             search-placeholder
@@ -90,7 +176,7 @@
        :auto-focus             true
        :placeholder            search-placeholder
        :placeholder-text-color st/color-gray4
-       :on-change-text         #(dispatch [:set-in [:toolbar-search :text] %])
+       :on-change-text         #(rf/dispatch [:set-in [:toolbar-search :text] %])
        :on-submit-editing      (when on-search-submit
                                  #(toolbar-search-submit on-search-submit))}]
      (or custom-title
@@ -108,13 +194,13 @@
                                    on-search-submit]
                             :as   opts}]
   (let [toggle-search-fn #(do
-                            (dispatch [:set-in [:toolbar-search :show] %])
-                            (dispatch [:set-in [:toolbar-search :text] ""]))
+                            (rf/dispatch [:set-in [:toolbar-search :show] %])
+                            (rf/dispatch [:set-in [:toolbar-search :text] ""]))
         actions          (if show-search?
                            (if (pos? (count search-text))
                              [(act/close #(do
                                             (.clear @search-text-input)
-                                            (dispatch [:set-in [:toolbar-search :text] ""])))]
+                                            (rf/dispatch [:set-in [:toolbar-search :text] ""])))]
                              [act/search-icon])
                            (into [(act/search #(toggle-search-fn search-key))] actions))]
     [toolbar {:style          style

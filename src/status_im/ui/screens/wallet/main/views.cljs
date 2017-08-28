@@ -28,7 +28,7 @@
 
 (defn toolbar-buttons []
   [rn/view {:style st/toolbar-buttons-container}
-   [rn/touchable-icon :dots_vertical_white st/toolbar-icon show-not-implemented!]
+   [rn/touchable-icon :dots_horizontal_white st/toolbar-icon show-not-implemented!]
    [rn/touchable-icon :qr_white st/toolbar-icon show-not-implemented!]])
 
 (defn- show-wallet-transactions []
@@ -37,10 +37,10 @@
     (show-not-implemented!)))
 
 (defn toolbar-view []
-  [toolbar/toolbar {:style          st/toolbar
-                    :nav-action     (act/list-white show-wallet-transactions)
-                    :custom-content [toolbar-title]
-                    :custom-action  [toolbar-buttons]}])
+  [toolbar/toolbar2 {:style st/toolbar}
+   [toolbar/nav-button (act/list-white show-wallet-transactions)]
+   [toolbar-title]
+   [toolbar-buttons]])
 
 ;; TODO(oskarth): Whatever triggers the "in progress" animation should also trigger wallet-init or load-prices event.
 (defn main-section [usd-value change]
@@ -55,10 +55,10 @@
       [rn/text {:style st/today-variation} change]]]
     [btn/buttons st/buttons
      [{:text     "Send"
-       :on-press #(rf/dispatch [:navigate-to :wallet-send-transaction])
+       :on-press show-not-implemented! ;; #(rf/dispatch [:navigate-to :wallet-send-transaction])
        :disabled? (not config/wallet-wip-enabled?)}
       {:text     "Request"
-       :on-press #(rf/dispatch [:navigate-to :wallet-request-transaction])
+       :on-press show-not-implemented! ;; #(rf/dispatch [:navigate-to :wallet-request-transaction])
        :disabled? (not config/wallet-wip-enabled?)}
       {:text      "Exchange"
        :disabled? true}]]]])

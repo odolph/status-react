@@ -38,8 +38,10 @@
    :handler handler
    :accessibility-label id/toolbar-back-button})
 
+(def default-handler #(dispatch [:navigate-back]))
+
 (def default-back
-  (back #(dispatch [:navigate-back])))
+  (back default-handler))
 
 (defn back-white [handler]
   {:image   {:source {:uri :icon_back_white}
